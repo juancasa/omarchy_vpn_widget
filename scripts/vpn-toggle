@@ -2,9 +2,11 @@
 # Control NetworkManager VPN connections.
 #
 #   vpn-toggle [profile]          toggle: disconnect the active VPN, else connect
-#                                 the preferred profile (argument, then one line
-#                                 in ~/.config/omarchy/bar/vpn-default, then the
-#                                 first VPN profile nmcli lists)
+#                                 the preferred profile: the argument, then the
+#                                 widget's "profile" setting in shell.json (the
+#                                 default switch in the picker), then one line in
+#                                 ~/.config/omarchy/bar/vpn-default, then the
+#                                 first VPN profile nmcli lists
 #   vpn-toggle --connect <name>   connect <name>, switching from any active VPN
 #   vpn-toggle --disconnect       disconnect every active VPN
 #   vpn-toggle --enforce          if more than one VPN is up, keep the most
@@ -35,6 +37,29 @@ down_all_except() {
     bring_down "$name" || rc=1
   done < <(active_vpns)
   return $rc
+}
+
+# The default profile chosen in the picker lives on this widget's entry in
+# shell.json. The entry id is the plugin id from manifest.json next to us.
+default_from_shell() {
+  local manifest shell_json id
+  manifest=$(dirname "$0")/../manifest.json
+  shell_json=${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/shell.json
+  [ -s "$manifest" ] && [ -s "$shell_json" ] || return 0
+  if command -v jq >/dev/null; then
+    id=$(jq -r '.id // empty' "$manifest" 2>/dev/null) || return 0
+    [ -n "$id" ] || return 0
+    jq -r --arg id "$id" '[.bar.layout // {} | .[]? | .[]? | select(.id == $id) | .profile // empty] | first // empty' "$shell_json" 2>/dev/null
+  elif command -v python3 >/dev/null; then
+    python3 - "$manifest" "$shell_json" <<'PY' 2>/dev/null
+import json, sys
+pid = json.load(open(sys.argv[1])).get("id")
+for section in json.load(open(sys.argv[2])).get("bar", {}).get("layout", {}).values():
+    for entry in section:
+        if entry.get("id") == pid and entry.get("profile"):
+            print(entry["profile"]); raise SystemExit
+PY
+  fi
 }
 
 vpn_profiles() {
@@ -96,6 +121,7 @@ fi
 
 target=${profiles[0]}
 default_file=~/.config/omarchy/bar/vpn-default
+[ -z "$want" ] && want=$(default_from_shell)
 [ -z "$want" ] && [ -s "$default_file" ] && want=$(head -n1 "$default_file")
 if [ -n "$want" ]; then
   found=0
