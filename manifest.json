@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "juancasa.vpn",
-  "name": "VPN",
+  "name": "NetworkManager VPN",
   "version": "1.0.0",
   "author": "Juan Casanas",
   "description": "One-click NetworkManager VPN toggle (OpenVPN, WireGuard) for the Omarchy bar",
@@ -10,7 +10,7 @@
   "kinds": ["bar-widget"],
   "entryPoints": { "barWidget": "Widget.qml" },
   "barWidget": {
-    "displayName": "VPN",
+    "displayName": "NetworkManager VPN",
     "description": "Shows NetworkManager VPN state; click to connect or disconnect",
     "category": "Network",
     "allowMultiple": false,
