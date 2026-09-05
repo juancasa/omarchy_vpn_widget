@@ -22,4 +22,12 @@ with open(path, "w") as f:
     f.write("\n")
 PY
 fi
+bindings=~/.config/hypr/bindings.lua
+if [ -f "$bindings" ] && grep -q 'installed by omarchy_vpn_widget' "$bindings"; then
+  cp "$bindings" "$bindings.bak.$(date +%s)"
+  sed -i '/-- VPN toggle (installed by omarchy_vpn_widget)/,+1d' "$bindings"
+  command -v hyprctl >/dev/null && hyprctl reload >/dev/null 2>&1 || true
+  echo "Removed the VPN keybinding from $bindings"
+fi
+
 echo "Removed the vpn widget. ~/.config/omarchy/bar/vpn-default was left in place if you created it."

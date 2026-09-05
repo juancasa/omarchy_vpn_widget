@@ -2,7 +2,21 @@
 # Install the Omarchy VPN bar widget:
 #  1. copies the scripts to ~/.config/omarchy/bar/scripts/
 #  2. adds the "vpn" command widget to ~/.config/omarchy/shell.json
+#  3. binds SUPER+SHIFT+V to the toggle in ~/.config/hypr/bindings.lua
+#     (skip with --no-keybinding, or change the key with --key "SUPER + ALT + V")
 set -euo pipefail
+
+keybinding=1
+key="SUPER + SHIFT + V"
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --no-keybinding) keybinding=0 ;;
+    --key) key=$2; shift ;;
+    -h|--help) sed -n '2,6p' "$0"; exit 0 ;;
+    *) echo "Unknown option: $1" >&2; exit 1 ;;
+  esac
+  shift
+done
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 scripts_dir=~/.config/omarchy/bar/scripts
@@ -53,6 +67,22 @@ with open(path, "w") as f:
     f.write("\n")
 print("Added 'vpn' widget to the right section of shell.json")
 PY
+
+bindings=~/.config/hypr/bindings.lua
+if [ "$keybinding" = 1 ]; then
+  if [ -f "$bindings" ] && grep -q 'scripts/vpn-toggle' "$bindings"; then
+    echo "Keybinding for vpn-toggle already present in $bindings; leaving it unchanged"
+  else
+    mkdir -p "$(dirname "$bindings")"
+    [ -f "$bindings" ] && cp "$bindings" "$bindings.bak.$(date +%s)"
+    printf '\n-- VPN toggle (installed by omarchy_vpn_widget)\no.bind("%s", "Toggle VPN", "~/.config/omarchy/bar/scripts/vpn-toggle")\n' "$key" >> "$bindings"
+    echo "Bound $key to vpn-toggle in $bindings"
+    if command -v hyprctl >/dev/null && hyprctl reload >/dev/null 2>&1; then
+      errors=$(hyprctl configerrors 2>/dev/null || true)
+      [ -n "$errors" ] && [ "$errors" != "no errors" ] && echo "Hyprland config errors:" && echo "$errors"
+    fi
+  fi
+fi
 
 echo "Done. The Omarchy shell reloads shell.json automatically."
 echo "If the icon does not appear, run: omarchy restart shell"

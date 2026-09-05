@@ -57,6 +57,15 @@ The installer:
 3. Adds a `vpn` command widget to the right section of the bar, right after
    the system tray. If you have no `shell.json` yet, it is created from
    Omarchy's defaults first.
+4. Binds **Super+Shift+V** to the toggle in `~/.config/hypr/bindings.lua`
+   (backed up first) and reloads Hyprland.
+
+Installer options:
+
+```bash
+./install.sh --no-keybinding          # widget only, no keyboard shortcut
+./install.sh --key "SUPER + ALT + V"  # use a different key combination
+```
 
 The Omarchy shell reloads `shell.json` on save, so the icon appears
 immediately. If it does not, run `omarchy restart shell`.
@@ -123,7 +132,8 @@ nmcli connection show
   echo "Work VPN" > ~/.config/omarchy/bar/vpn-default
   ```
 
-- **Keyboard shortcut:** the toggle is a plain script, so it can be bound in
+- **Keyboard shortcut:** Super+Shift+V toggles the VPN (added by the
+  installer). To change it later, edit the line the installer appended to
   `~/.config/hypr/bindings.lua`:
 
   ```lua
@@ -154,8 +164,9 @@ The scripts are re-read on every refresh, so edits apply without a restart.
 ./uninstall.sh
 ```
 
-This removes the scripts and the `vpn` entry from `shell.json` (after backing
-it up). Your VPN profiles in NetworkManager are untouched.
+This removes the scripts, the `vpn` entry from `shell.json`, and the
+keybinding the installer added (both files are backed up first). Your VPN
+profiles in NetworkManager are untouched.
 
 ## How it works
 
