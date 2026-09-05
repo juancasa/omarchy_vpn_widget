@@ -9,6 +9,12 @@ managed by NetworkManager.
 |-----|-----------|
 | ![VPN off](docs/bar-off.png) | ![VPN connected](docs/bar-on.png) |
 
+Right-click opens a picker that lists every VPN profile NetworkManager knows
+about. Click one to connect it (switching from whatever is active), or click
+the connected one to disconnect.
+
+![Profile picker](docs/picker.png)
+
 | Icon | Meaning |
 |------|---------|
 | 󰦞 shield, crossed out | No VPN connected |
@@ -18,8 +24,9 @@ managed by NetworkManager.
 | Action | Result |
 |--------|--------|
 | Left-click | Connect the VPN, or disconnect if one is already up |
-| Right-click | Open `nm-connection-editor` to import or edit VPN profiles |
+| Right-click | Open the profile picker |
 | Middle-click | Refresh the status immediately |
+| Picker > Edit connections | Open `nm-connection-editor` to import or edit VPN profiles |
 | Hover | Tooltip with the profile name and current state |
 | Super+Shift+V | Toggle the VPN (added by the installer) |
 
@@ -97,9 +104,9 @@ nmcli connection modify "<connection name>" vpn.user-name "<username>"
 nmcli connection import type wireguard file /path/to/wg0.conf
 ```
 
-**From the GUI:** right-click the widget, press **+**, choose
-**Import a saved VPN configuration…** at the bottom of the list, and pick the
-file.
+**From the GUI:** right-click the widget, choose **Edit connections**, press
+**+**, choose **Import a saved VPN configuration…** at the bottom of the list,
+and pick the file.
 
 Check what NetworkManager knows about with:
 
@@ -110,21 +117,31 @@ nmcli connection show
 ## Use
 
 - **Connect / disconnect:** left-click the shield, or press Super+Shift+V.
-- **Several profiles:** the toggle connects the first VPN profile in `nmcli`'s
-  order. Pick a different one with the `profile` setting (see below).
+- **Several profiles:** right-click the shield and pick one from the list.
+  The left-click toggle connects the first VPN profile in `nmcli`'s order
+  unless the `profile` setting names another (see below).
 - **Move the widget:** drag it along the bar, or run
   `omarchy bar move juancasa.vpn --section center`.
 - **Scripting:** the widget registers an IPC target, so other tools can drive
   it:
 
   ```bash
-  omarchy-shell juancasa.vpn toggle    # connect or disconnect
-  omarchy-shell juancasa.vpn refresh   # re-read the status now
-  omarchy-shell juancasa.vpn editor    # open the connection editor
+  omarchy-shell juancasa.vpn toggle              # connect or disconnect
+  omarchy-shell juancasa.vpn connect "Work VPN"  # connect a specific profile
+  omarchy-shell juancasa.vpn disconnect
+  omarchy-shell juancasa.vpn menu                # open or close the picker
+  omarchy-shell juancasa.vpn refresh             # re-read the status now
+  omarchy-shell juancasa.vpn editor              # open the connection editor
   ```
 
   The toggle script also works on its own, for keybindings or cron:
-  `~/.config/omarchy/plugins/juancasa.vpn/scripts/vpn-toggle [profile]`.
+
+  ```bash
+  ~/.config/omarchy/plugins/juancasa.vpn/scripts/vpn-toggle              # toggle
+  ~/.config/omarchy/plugins/juancasa.vpn/scripts/vpn-toggle "Work VPN"   # toggle, preferring a profile
+  ~/.config/omarchy/plugins/juancasa.vpn/scripts/vpn-toggle --connect "Work VPN"
+  ~/.config/omarchy/plugins/juancasa.vpn/scripts/vpn-toggle --disconnect
+  ```
 
 ## Settings
 
@@ -135,7 +152,7 @@ and can be changed with `omarchy bar set` or from the shell's Setup panel.
 |-----|---------|---------|
 | `interval` | `3` | Seconds between status refreshes |
 | `profile` | `""` | Connection name to connect when several VPN profiles exist. Empty uses the first one. |
-| `editor` | `nm-connection-editor` | Command run on right-click |
+| `editor` | `nm-connection-editor` | Command behind the picker's "Edit connections" button |
 | `notify` | `true` | Send a desktop notification after each connect or disconnect |
 
 Examples:
@@ -168,8 +185,8 @@ installer added. NetworkManager VPN profiles are untouched either way.
 
 ```
 manifest.json        plugin manifest (id juancasa.vpn, kind bar-widget)
-Widget.qml           the bar widget: polls the status script, handles clicks
-scripts/vpn-status   prints {"text","tooltip","class"} from nmcli state
+Widget.qml           the bar widget: polls the status script, handles clicks, hosts the picker popup
+scripts/vpn-status   prints {"text","tooltip","class","profiles"} from nmcli state
 scripts/vpn-toggle   nmcli connection up / down with notifications
 ```
 
