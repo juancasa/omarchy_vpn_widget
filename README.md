@@ -1,24 +1,27 @@
 # Omarchy VPN Widget
 
-A small VPN toggle for the [Omarchy](https://omarchy.org) status bar. It shows
-whether a NetworkManager VPN is up and lets you connect or disconnect with one
-click. Works with OpenVPN and WireGuard profiles managed by NetworkManager.
+A native [Omarchy](https://omarchy.org) shell plugin that puts a VPN toggle in
+the status bar. It shows whether a NetworkManager VPN is up and connects or
+disconnects it with one click. Works with OpenVPN and WireGuard profiles
+managed by NetworkManager.
 
-![VPN widget in the Omarchy bar](docs/bar-off.png)
+| Off | Connected |
+|-----|-----------|
+| ![VPN off](docs/bar-off.png) | ![VPN connected](docs/bar-on.png) |
 
 | Icon | Meaning |
 |------|---------|
 | 󰦞 shield, crossed out | No VPN connected |
 | 󰦟 shield outline | VPN is connecting |
-| 󰦝 shield with lock (accent color) | VPN connected |
-
-Interactions:
+| 󰦝 shield with lock, accent color | VPN connected |
 
 | Action | Result |
 |--------|--------|
 | Left-click | Connect the VPN, or disconnect if one is already up |
 | Right-click | Open `nm-connection-editor` to import or edit VPN profiles |
+| Middle-click | Refresh the status immediately |
 | Hover | Tooltip with the profile name and current state |
+| Super+Shift+V | Toggle the VPN (added by the installer) |
 
 A desktop notification confirms every connect and disconnect, including
 failures.
@@ -26,23 +29,35 @@ failures.
 ## Why
 
 Omarchy's built-in network panel only handles Wi-Fi, and its bar has no VPN
-control. NetworkManager already knows how to run OpenVPN and WireGuard, so this
-widget is just two shell scripts wired into Omarchy's `command` bar module. No
-extra daemons, no tray applet.
+control. NetworkManager already knows how to run OpenVPN and WireGuard, so
+this plugin is a small Quickshell widget plus two shell scripts. No extra
+daemons, no tray applet.
 
 ## Requirements
 
-- Omarchy 4.x with the Quickshell-based shell (bar configured in `~/.config/omarchy/shell.json`). Tested on 4.0.2.
-- NetworkManager with the VPN plugin for your VPN type:
+- Omarchy 4.x with the Quickshell-based shell. Tested on 4.0.2.
+- NetworkManager with the plugin for your VPN type:
   - OpenVPN: `sudo pacman -S openvpn networkmanager-openvpn`
   - WireGuard: built into NetworkManager, nothing extra to install
-- `nm-connection-editor` for the right-click editor (optional but recommended):
-  `sudo pacman -S nm-connection-editor`
-- `python3` (used by the installer to edit `shell.json`; Omarchy ships it)
-- A Nerd Font in the bar for the shield icons. Omarchy's default fonts already
-  include them.
+- `nm-connection-editor` for the right-click editor (optional but
+  recommended): `sudo pacman -S nm-connection-editor`
 
 ## Install
+
+Omarchy installs shell plugins straight from git:
+
+```bash
+omarchy plugin add https://github.com/juancasa/omarchy_vpn_widget.git --enable
+```
+
+That clones the repo into `~/.config/omarchy/plugins/juancasa.vpn`, validates
+the manifest, and places the widget in the right section of the bar. Omarchy
+asks for confirmation first because plugins run unsandboxed inside the shell.
+Add `--yes` to skip the prompts.
+
+To get the Super+Shift+V keybinding as well, run the installer from a clone
+instead. It calls the same `omarchy plugin add` and then appends the binding
+to `~/.config/hypr/bindings.lua` (backed up first):
 
 ```bash
 git clone https://github.com/juancasa/omarchy_vpn_widget.git
@@ -50,43 +65,14 @@ cd omarchy_vpn_widget
 ./install.sh
 ```
 
-The installer:
-
-1. Copies `vpn-status` and `vpn-toggle` to `~/.config/omarchy/bar/scripts/`.
-2. Backs up `~/.config/omarchy/shell.json` (as `shell.json.bak.<timestamp>`).
-3. Adds a `vpn` command widget to the right section of the bar, right after
-   the system tray. If you have no `shell.json` yet, it is created from
-   Omarchy's defaults first.
-4. Binds **Super+Shift+V** to the toggle in `~/.config/hypr/bindings.lua`
-   (backed up first) and reloads Hyprland.
-
 Installer options:
 
 ```bash
-./install.sh --no-keybinding          # widget only, no keyboard shortcut
+./install.sh --no-keybinding          # plugin only, no keyboard shortcut
 ./install.sh --key "SUPER + ALT + V"  # use a different key combination
 ```
 
-The Omarchy shell reloads `shell.json` on save, so the icon appears
-immediately. If it does not, run `omarchy restart shell`.
-
-### Manual install
-
-If you would rather not run the installer, copy the two scripts from
-`scripts/` to `~/.config/omarchy/bar/scripts/`, make them executable, and add
-this entry to `bar.layout.right` in `~/.config/omarchy/shell.json`:
-
-```json
-{
-  "id": "vpn",
-  "type": "command",
-  "exec": "~/.config/omarchy/bar/scripts/vpn-status",
-  "interval": 3,
-  "tooltip": "VPN",
-  "onClick": "~/.config/omarchy/bar/scripts/vpn-toggle",
-  "onRightClick": "nm-connection-editor"
-}
-```
+Running `install.sh` again updates an existing install instead of failing.
 
 ## Add a VPN profile
 
@@ -123,71 +109,86 @@ nmcli connection show
 
 ## Use
 
-- **Connect / disconnect:** left-click the shield.
+- **Connect / disconnect:** left-click the shield, or press Super+Shift+V.
 - **Several profiles:** the toggle connects the first VPN profile in `nmcli`'s
-  order. To choose a different one, write its exact connection name on a
-  single line in `~/.config/omarchy/bar/vpn-default`:
+  order. Pick a different one with the `profile` setting (see below).
+- **Move the widget:** drag it along the bar, or run
+  `omarchy bar move juancasa.vpn --section center`.
+- **Scripting:** the widget registers an IPC target, so other tools can drive
+  it:
 
   ```bash
-  echo "Work VPN" > ~/.config/omarchy/bar/vpn-default
+  omarchy-shell juancasa.vpn toggle    # connect or disconnect
+  omarchy-shell juancasa.vpn refresh   # re-read the status now
+  omarchy-shell juancasa.vpn editor    # open the connection editor
   ```
 
-- **Keyboard shortcut:** Super+Shift+V toggles the VPN (added by the
-  installer). To change it later, edit the line the installer appended to
-  `~/.config/hypr/bindings.lua`:
+  The toggle script also works on its own, for keybindings or cron:
+  `~/.config/omarchy/plugins/juancasa.vpn/scripts/vpn-toggle [profile]`.
 
-  ```lua
-  o.bind("SUPER + SHIFT + V", "Toggle VPN", "~/.config/omarchy/bar/scripts/vpn-toggle")
-  ```
+## Settings
 
-- **Move the widget:** drag it along the bar, or run
-  `omarchy bar move vpn --section center`.
-
-## Configure
-
-All settings live on the widget entry in `shell.json`:
+Settings are stored on the widget's entry in `~/.config/omarchy/shell.json`
+and can be changed with `omarchy bar set` or from the shell's Setup panel.
 
 | Key | Default | Purpose |
 |-----|---------|---------|
 | `interval` | `3` | Seconds between status refreshes |
-| `onClick` | `vpn-toggle` | Command run on left-click |
-| `onRightClick` | `nm-connection-editor` | Command run on right-click |
-| `onMiddleClick` | unset | Command run on middle-click |
-| `fontSize` | `12` | Icon size |
+| `profile` | `""` | Connection name to connect when several VPN profiles exist. Empty uses the first one. |
+| `editor` | `nm-connection-editor` | Command run on right-click |
+| `notify` | `true` | Send a desktop notification after each connect or disconnect |
 
-To change the icons, edit the `ICON_*` variables at the top of `vpn-status`.
-The scripts are re-read on every refresh, so edits apply without a restart.
+Examples:
+
+```bash
+omarchy bar set juancasa.vpn profile "Work VPN"
+omarchy bar set juancasa.vpn interval 5
+omarchy bar set juancasa.vpn notify false --json
+```
+
+Changes apply immediately. The plugin's files hot-reload too, so editing the
+icons at the top of `scripts/vpn-status` takes effect on the next refresh.
+
+## Update
+
+```bash
+omarchy plugin update juancasa.vpn
+```
 
 ## Uninstall
 
 ```bash
-./uninstall.sh
+omarchy plugin remove juancasa.vpn
 ```
 
-This removes the scripts, the `vpn` entry from `shell.json`, and the
-keybinding the installer added (both files are backed up first). Your VPN
-profiles in NetworkManager are untouched.
+Or, from a clone, `./uninstall.sh` removes the plugin and the keybinding the
+installer added. NetworkManager VPN profiles are untouched either way.
 
 ## How it works
 
-- `vpn-status` runs every few seconds and prints Waybar-style JSON
-  (`text`, `tooltip`, `class`). Omarchy renders `class: "active"` in the bar's
-  accent color, which is what lights the icon up when connected.
-- `vpn-toggle` uses `nmcli connection up` / `down` on the VPN connection and
-  reports the result with `notify-send`.
+```
+manifest.json        plugin manifest (id juancasa.vpn, kind bar-widget)
+Widget.qml           the bar widget: polls the status script, handles clicks
+scripts/vpn-status   prints {"text","tooltip","class"} from nmcli state
+scripts/vpn-toggle   nmcli connection up / down with notifications
+```
+
+The widget runs `vpn-status` on a timer and reads its JSON. When `class` is
+`active` the icon is drawn in the bar's accent color. Clicks run `vpn-toggle`,
+passing the preferred profile from settings.
 
 ## Troubleshooting
 
-- **Icon missing:** confirm the scripts are executable and print JSON when run
-  by hand: `~/.config/omarchy/bar/scripts/vpn-status`. Then check the shell
-  log: `journalctl --user -u omarchy-shell -b | tail`.
+- **Icon missing:** check the plugin is enabled with `omarchy plugin list`,
+  then run the status script by hand:
+  `~/.config/omarchy/plugins/juancasa.vpn/scripts/vpn-status`. Shell log:
+  `journalctl --user -b | grep juancasa.vpn`.
 - **"No VPN profiles" tooltip:** import a profile (see above). The widget only
   lists connections whose type is `vpn` or `wireguard`.
 - **Connect fails:** run `nmcli connection up "<name>"` in a terminal to see
   the real error. Missing certificates and wrong credentials are the usual
   causes.
-- **Warning about `moduleName` in the shell log:** Omarchy prints this for
-  every `command`-type widget. It is harmless.
+- **Validate a local checkout:** `omarchy plugin validate .`
 
 ## License
 
