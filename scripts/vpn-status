@@ -8,6 +8,12 @@ ICON_ON=$'\U000F099D'   # nf-md-shield_lock
 ICON_OFF=$'\U000F099E'  # nf-md-shield_off
 ICON_BUSY=$'\U000F099F' # nf-md-shield_outline
 
+# Guard: never let two VPNs stay up. Set VPN_WIDGET_SINGLE=0 to allow it.
+if [ "${VPN_WIDGET_SINGLE:-1}" != 0 ]; then
+  count=$(nmcli -g TYPE connection show --active 2>/dev/null | grep -c -E '^(vpn|wireguard)$' || true)
+  [ "${count:-0}" -gt 1 ] && "$(dirname "$0")/vpn-toggle" --enforce >/dev/null 2>&1
+fi
+
 jstr() { local s=${1//\\/\\\\}; s=${s//\"/\\\"}; s=${s//$'\n'/\\n}; printf '"%s"' "$s"; }
 
 declare -A state

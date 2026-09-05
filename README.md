@@ -32,6 +32,12 @@ the connected one to disconnect.
 A desktop notification confirms every connect and disconnect, including
 failures.
 
+Only one VPN is ever active. Connecting a profile disconnects whatever other
+VPN is up, and if two come up some other way (autoconnect, nmcli by hand) the
+widget tears down all but the most recently activated one on its next
+refresh. Turn this off with the `single` setting if you really want stacked
+tunnels.
+
 ## Why
 
 Omarchy's built-in network panel only handles Wi-Fi, and its bar has no VPN
@@ -139,7 +145,8 @@ nmcli connection show
   ~/.config/omarchy/plugins/juancasa.vpn/scripts/vpn-toggle              # toggle
   ~/.config/omarchy/plugins/juancasa.vpn/scripts/vpn-toggle "Work VPN"   # toggle, preferring a profile
   ~/.config/omarchy/plugins/juancasa.vpn/scripts/vpn-toggle --connect "Work VPN"
-  ~/.config/omarchy/plugins/juancasa.vpn/scripts/vpn-toggle --disconnect
+  ~/.config/omarchy/plugins/juancasa.vpn/scripts/vpn-toggle --disconnect     # disconnect every active VPN
+  ~/.config/omarchy/plugins/juancasa.vpn/scripts/vpn-toggle --enforce        # keep the newest VPN, drop the rest
   ```
 
 ## Settings
@@ -153,6 +160,7 @@ and can be changed with `omarchy bar set` or from the shell's Setup panel.
 | `profile` | `""` | Connection name to connect when several VPN profiles exist. Empty uses the first one. |
 | `editor` | `nm-connection-editor` | Command behind the picker's "Edit connections" button |
 | `notify` | `true` | Send a desktop notification after each connect or disconnect |
+| `single` | `true` | Keep at most one VPN active. Connecting switches; extras are disconnected on refresh. |
 
 Examples:
 

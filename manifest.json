@@ -19,13 +19,15 @@
       "interval": 3,
       "profile": "",
       "editor": "nm-connection-editor",
-      "notify": true
+      "notify": true,
+      "single": true
     },
     "schema": [
       { "key": "interval", "type": "integer", "label": "Refresh interval (seconds)", "min": 1, "max": 60, "step": 1, "defaultValue": 3 },
       { "key": "profile", "type": "string", "label": "Preferred VPN profile", "defaultValue": "", "description": "NetworkManager connection name to connect when several VPN profiles exist. Empty uses the first one." },
       { "key": "editor", "type": "string", "label": "Right-click command", "defaultValue": "nm-connection-editor", "description": "Command run on right-click, normally the NetworkManager connection editor." },
-      { "key": "notify", "type": "boolean", "label": "Desktop notifications", "defaultValue": true, "description": "Send a notification after each connect or disconnect." }
+      { "key": "notify", "type": "boolean", "label": "Desktop notifications", "defaultValue": true, "description": "Send a notification after each connect or disconnect." },
+      { "key": "single", "type": "boolean", "label": "Only one VPN at a time", "defaultValue": true, "description": "Connecting a profile disconnects any other active VPN, and extras that come up elsewhere are torn down on the next refresh." }
     ]
   }
 }

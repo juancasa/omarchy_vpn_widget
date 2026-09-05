@@ -26,6 +26,7 @@ BarWidget {
   readonly property string profile: String(setting("profile", ""))
   readonly property string editor: String(setting("editor", "nm-connection-editor"))
   readonly property bool notify: setting("notify", true) !== false
+  readonly property bool single: setting("single", true) !== false
 
   readonly property color foreground: bar ? bar.foreground : Color.foreground
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
@@ -103,7 +104,7 @@ BarWidget {
 
   Process {
     id: statusProc
-    command: ["bash", root.statusScript]
+    command: ["env", "VPN_WIDGET_SINGLE=" + (root.single ? "1" : "0"), "bash", root.statusScript]
     stdout: StdioCollector {
       waitForEnd: true
       onStreamFinished: root.applyStatus(text)

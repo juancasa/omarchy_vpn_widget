@@ -6,8 +6,12 @@
 #                                 in ~/.config/omarchy/bar/vpn-default, then the
 #                                 first VPN profile nmcli lists)
 #   vpn-toggle --connect <name>   connect <name>, switching from any active VPN
-#   vpn-toggle --disconnect       disconnect whatever VPN is active
+#   vpn-toggle --disconnect       disconnect every active VPN
+#   vpn-toggle --enforce          if more than one VPN is up, keep the most
+#                                 recently activated one and disconnect the rest
 #
+# Only one VPN is ever left active: every connect path first brings down any
+# other VPN connection NetworkManager reports as active.
 # Set VPN_WIDGET_QUIET=1 to suppress desktop notifications.
 set -u
 
@@ -16,8 +20,21 @@ notify() {
   command -v notify-send >/dev/null && notify-send -a "VPN" "$@"
 }
 
-active_vpn() {
-  nmcli -g NAME,TYPE connection show --active 2>/dev/null | awk -F: '($2=="vpn"||$2=="wireguard"){print $1; exit}'
+# Active VPN connection names, newest activation first (TIMESTAMP is the last
+# successful activation time NetworkManager recorded).
+active_vpns() {
+  nmcli -g NAME,TYPE,TIMESTAMP connection show --active 2>/dev/null \
+    | awk -F: '($2=="vpn"||$2=="wireguard"){print $3":"$1}' | sort -t: -k1,1nr | cut -d: -f2-
+}
+
+down_all_except() {
+  local keep=${1:-} name rc=0
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    [ "$name" = "$keep" ] && continue
+    bring_down "$name" || rc=1
+  done < <(active_vpns)
+  return $rc
 }
 
 vpn_profiles() {
@@ -48,19 +65,27 @@ want=""
 case "${1:-}" in
   --connect) mode=connect; want=${2:-} ;;
   --disconnect) mode=disconnect ;;
-  -h|--help) sed -n '2,11p' "$0"; exit 0 ;;
+  --enforce) mode=enforce ;;
+  -h|--help) sed -n '2,16p' "$0"; exit 0 ;;
   *) want=${1:-} ;;
 esac
 
-active=$(active_vpn)
+mapfile -t actives < <(active_vpns)
+active=${actives[0]:-}
+
+if [ "$mode" = enforce ]; then
+  [ ${#actives[@]} -gt 1 ] || exit 0
+  notify "Only one VPN allowed" "Keeping $active, disconnecting the rest"
+  down_all_except "$active"; exit $?
+fi
 
 if [ "$mode" = disconnect ]; then
   [ -n "$active" ] || { notify "VPN already off"; exit 0; }
-  bring_down "$active"; exit $?
+  down_all_except ""; exit $?
 fi
 
 if [ "$mode" = toggle ] && [ -n "$active" ]; then
-  bring_down "$active"; exit $?
+  down_all_except ""; exit $?
 fi
 
 mapfile -t profiles < <(vpn_profiles)
@@ -81,9 +106,11 @@ if [ -n "$want" ]; then
   fi
 fi
 
-# --connect while another VPN is up: switch.
-if [ -n "$active" ]; then
-  [ "$active" = "$target" ] && { notify "VPN already connected" "$target"; exit 0; }
-  bring_down "$active" || exit 1
+# Connecting while other VPNs are up: switch, so only one stays active.
+if [ ${#actives[@]} -gt 0 ]; then
+  already=0
+  for a in "${actives[@]}"; do [ "$a" = "$target" ] && already=1; done
+  down_all_except "$target" || exit 1
+  [ $already = 1 ] && { notify "VPN already connected" "$target"; exit 0; }
 fi
 bring_up "$target"
