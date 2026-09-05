@@ -32,10 +32,14 @@ BarWidget {
     if (!statusProc.running) statusProc.running = true
   }
 
+  function shellQuote(value) {
+    return "'" + String(value).replace(/'/g, "'\\''") + "'"
+  }
+
   function toggle() {
     if (!root.bar) return
-    var cmd = root.bar.shellQuote(toggleScript)
-    if (profile !== "") cmd += " " + root.bar.shellQuote(profile)
+    var cmd = shellQuote(toggleScript)
+    if (profile !== "") cmd += " " + shellQuote(profile)
     if (!notify) cmd = "VPN_WIDGET_QUIET=1 " + cmd
     root.bar.run(cmd)
     // The connect handshake takes a moment; poll sooner than the regular tick.
