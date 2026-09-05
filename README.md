@@ -143,7 +143,9 @@ nmcli connection show
   omarchy-shell juancasa.omarchy_vpn editor              # open the connection editor
   ```
 
-  The toggle script also works on its own, for keybindings or cron:
+  The toggle script also works on its own, for keybindings or cron. With no
+  argument it reads the default profile from the widget's settings in
+  `shell.json`, so the picker's switch and the keybinding always agree:
 
   ```bash
   ~/.config/omarchy/plugins/juancasa.omarchy_vpn/scripts/vpn-toggle              # toggle
