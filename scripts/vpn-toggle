@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# Toggle the NetworkManager VPN: disconnect the active one, otherwise connect
-# the preferred profile.
+# Control NetworkManager VPN connections.
 #
-#   vpn-toggle [profile-name]
+#   vpn-toggle [profile]          toggle: disconnect the active VPN, else connect
+#                                 the preferred profile (argument, then one line
+#                                 in ~/.config/omarchy/bar/vpn-default, then the
+#                                 first VPN profile nmcli lists)
+#   vpn-toggle --connect <name>   connect <name>, switching from any active VPN
+#   vpn-toggle --disconnect       disconnect whatever VPN is active
 #
-# Profile preference, in order: the argument, then one line in
-# ~/.config/omarchy/bar/vpn-default, then the first VPN profile nmcli lists.
 # Set VPN_WIDGET_QUIET=1 to suppress desktop notifications.
 set -u
 
@@ -14,34 +16,74 @@ notify() {
   command -v notify-send >/dev/null && notify-send -a "VPN" "$@"
 }
 
-active=$(nmcli -g NAME,TYPE connection show --active 2>/dev/null | awk -F: '($2=="vpn"||$2=="wireguard"){print $1; exit}')
-if [ -n "$active" ]; then
-  if nmcli connection down "$active" >/dev/null 2>&1; then
-    notify "VPN disconnected" "$active"
+active_vpn() {
+  nmcli -g NAME,TYPE connection show --active 2>/dev/null | awk -F: '($2=="vpn"||$2=="wireguard"){print $1; exit}'
+}
+
+vpn_profiles() {
+  nmcli -g NAME,TYPE connection show 2>/dev/null | awk -F: '$2=="vpn"||$2=="wireguard"{print $1}'
+}
+
+bring_down() {
+  if nmcli connection down "$1" >/dev/null 2>&1; then
+    notify "VPN disconnected" "$1"
   else
-    notify -u critical "VPN disconnect failed" "$active"
+    notify -u critical "VPN disconnect failed" "$1"
+    return 1
   fi
-  exit 0
+}
+
+bring_up() {
+  local out
+  if out=$(nmcli connection up "$1" 2>&1); then
+    notify "VPN connected" "$1"
+  else
+    notify -u critical "VPN connect failed" "$1: ${out##*$'\n'}"
+    return 1
+  fi
+}
+
+mode=toggle
+want=""
+case "${1:-}" in
+  --connect) mode=connect; want=${2:-} ;;
+  --disconnect) mode=disconnect ;;
+  -h|--help) sed -n '2,11p' "$0"; exit 0 ;;
+  *) want=${1:-} ;;
+esac
+
+active=$(active_vpn)
+
+if [ "$mode" = disconnect ]; then
+  [ -n "$active" ] || { notify "VPN already off"; exit 0; }
+  bring_down "$active"; exit $?
 fi
 
-mapfile -t profiles < <(nmcli -g NAME,TYPE connection show 2>/dev/null | awk -F: '$2=="vpn"||$2=="wireguard"{print $1}')
+if [ "$mode" = toggle ] && [ -n "$active" ]; then
+  bring_down "$active"; exit $?
+fi
+
+mapfile -t profiles < <(vpn_profiles)
 if [ ${#profiles[@]} -eq 0 ]; then
   notify "No VPN profiles" "Import one with: nmcli connection import type openvpn file <file.ovpn>"
   exit 1
 fi
 
 target=${profiles[0]}
-want=${1:-}
 default_file=~/.config/omarchy/bar/vpn-default
 [ -z "$want" ] && [ -s "$default_file" ] && want=$(head -n1 "$default_file")
 if [ -n "$want" ]; then
   found=0
   for p in "${profiles[@]}"; do [ "$p" = "$want" ] && { target=$p; found=1; }; done
-  [ $found = 1 ] || notify -u normal "VPN profile '$want' not found" "Connecting $target instead"
+  if [ $found = 0 ]; then
+    [ "$mode" = connect ] && { notify -u critical "VPN profile not found" "$want"; exit 1; }
+    notify "VPN profile '$want' not found" "Connecting $target instead"
+  fi
 fi
 
-if out=$(nmcli connection up "$target" 2>&1); then
-  notify "VPN connected" "$target"
-else
-  notify -u critical "VPN connect failed" "$target: ${out##*$'\n'}"
+# --connect while another VPN is up: switch.
+if [ -n "$active" ]; then
+  [ "$active" = "$target" ] && { notify "VPN already connected" "$target"; exit 0; }
+  bring_down "$active" || exit 1
 fi
+bring_up "$target"

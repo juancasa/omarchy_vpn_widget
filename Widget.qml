@@ -8,9 +8,11 @@ import qs.Ui
 //
 // Polls NetworkManager through scripts/vpn-status and renders a shield icon:
 // crossed out while no VPN is up, outlined while one is activating, and a
-// locked shield in the bar's accent color once connected. Left click runs
-// scripts/vpn-toggle, right click opens the connection editor, middle click
-// refreshes immediately.
+// locked shield in the bar's accent color once connected.
+//
+//   left click    toggle the VPN (scripts/vpn-toggle)
+//   right click   open the profile picker popup
+//   middle click  refresh now
 BarWidget {
   id: root
   moduleName: "juancasa.vpn"
@@ -24,26 +26,52 @@ BarWidget {
   readonly property string editor: String(setting("editor", "nm-connection-editor"))
   readonly property bool notify: setting("notify", true) !== false
 
+  readonly property color foreground: bar ? bar.foreground : Color.foreground
+  readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
+
   property string icon: ""
   property string tooltip: "VPN"
   property string state: "unknown"
+  property var profiles: []
+  property bool pickerOpen: false
+
+  // Shape contract for shell.summon/hide/toggle routing (Bar.findPanelWidget
+  // requires open/close/opened on the bar-widget root).
+  readonly property bool opened: pickerOpen
+  function open() { refresh(); pickerOpen = true }
+  function close() { pickerOpen = false }
+  function togglePicker() { if (pickerOpen) close(); else open() }
 
   function refresh() {
     if (!statusProc.running) statusProc.running = true
   }
 
-  function toggle() {
+  function runToggle(args) {
     if (!root.bar) return
-    var cmd = Util.shellQuote(toggleScript)
-    if (profile !== "") cmd += " " + Util.shellQuote(profile)
+    var cmd = Util.shellQuote(toggleScript) + (args ? " " + args : "")
     if (!notify) cmd = "VPN_WIDGET_QUIET=1 " + cmd
     root.bar.run(cmd)
     // The connect handshake takes a moment; poll sooner than the regular tick.
     quickRefresh.restart()
   }
 
+  function toggle() {
+    runToggle(profile !== "" ? Util.shellQuote(profile) : "")
+  }
+
+  function connectProfile(name) {
+    runToggle("--connect " + Util.shellQuote(name))
+    close()
+  }
+
+  function disconnect() {
+    runToggle("--disconnect")
+    close()
+  }
+
   function openEditor() {
     if (root.bar && editor !== "") root.bar.run(editor)
+    close()
   }
 
   function applyStatus(raw) {
@@ -51,6 +79,7 @@ BarWidget {
     icon = data.text || ""
     tooltip = data.tooltip || "VPN"
     state = data.class || "unknown"
+    profiles = Array.isArray(data.profiles) ? data.profiles : []
   }
 
   implicitWidth: button.implicitWidth
@@ -64,6 +93,11 @@ BarWidget {
     function toggle(): void { root.toggle() }
     function refresh(): void { root.broadcast("refresh") }
     function editor(): void { root.openEditor() }
+    function connect(name: string): void { root.connectProfile(name) }
+    function disconnect(): void { root.disconnect() }
+    function menu(): void { root.togglePicker() }
+    function open(): void { root.open() }
+    function close(): void { root.close() }
   }
 
   Process {
@@ -99,12 +133,164 @@ BarWidget {
     slotSize: Style.bar.statusSlot
     active: root.state === "active"
     dimmed: root.state === "none"
-    tooltipText: root.tooltip
+    tooltipText: root.pickerOpen ? "" : root.tooltip
 
     onPressed: function(b) {
-      if (b === Qt.RightButton) root.openEditor()
+      if (b === Qt.RightButton) root.togglePicker()
       else if (b === Qt.MiddleButton) root.refresh()
       else root.toggle()
+    }
+  }
+
+  PopupCard {
+    id: picker
+    anchorItem: button
+    bar: root.bar
+    owner: root
+    open: root.pickerOpen
+    contentWidth: picker.fittedContentWidth(Style.space(280))
+    contentHeight: picker.fittedContentHeight(column.implicitHeight)
+
+    Column {
+      id: column
+      anchors.fill: parent
+      spacing: Style.space(6)
+
+      Text {
+        textFormat: Text.PlainText
+        text: "VPN"
+        color: root.foreground
+        font.family: root.fontFamily
+        font.pixelSize: Style.font.body
+        font.bold: true
+      }
+
+      Text {
+        visible: root.profiles.length === 0
+        textFormat: Text.PlainText
+        text: "No VPN profiles in NetworkManager yet."
+        color: Qt.darker(root.foreground, 1.5)
+        font.family: root.fontFamily
+        font.pixelSize: Style.font.bodySmall
+        font.italic: true
+        wrapMode: Text.WordWrap
+        width: parent.width
+      }
+
+      Repeater {
+        model: root.profiles
+
+        BorderSurface {
+          id: row
+          required property var modelData
+
+          readonly property string name: String(modelData.name || "")
+          readonly property string connState: String(modelData.state || "")
+          readonly property bool connected: connState === "activated"
+          readonly property bool connecting: connState === "activating"
+          readonly property bool hovered: rowMouse.containsMouse
+
+          width: column.width
+          height: rowInner.implicitHeight + Style.space(12)
+          radius: Style.spacing.labelGap
+          color: connected
+            ? Style.selectedFillFor(root.foreground, Color.accent)
+            : (hovered ? Style.hoverFillFor(root.foreground, Color.accent) : "transparent")
+          borderSpec: connected ? Border.controlSpec("normal", root.foreground, Color.accent) : Border.none()
+
+          Row {
+            id: rowInner
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.leftMargin: row.borderLeft + Style.space(8)
+            anchors.rightMargin: row.borderRight + Style.space(8)
+            spacing: Style.space(8)
+
+            Text {
+              textFormat: Text.PlainText
+              text: row.connected ? "󰦝" : (row.connecting ? "󰦟" : "󰦞")
+              color: row.connected ? Color.accent : root.foreground
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.body
+              width: Style.space(18)
+              horizontalAlignment: Text.AlignHCenter
+              anchors.verticalCenter: parent.verticalCenter
+            }
+
+            Column {
+              width: parent.width - Style.space(26)
+              spacing: Style.space(1)
+              anchors.verticalCenter: parent.verticalCenter
+
+              Text {
+                textFormat: Text.PlainText
+                text: row.name
+                color: root.foreground
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.bodySmall
+                font.bold: row.connected
+                elide: Text.ElideRight
+                width: parent.width
+              }
+
+              Text {
+                textFormat: Text.PlainText
+                text: row.connected ? "Connected. Click to disconnect"
+                    : (row.connecting ? "Connecting…" : "Click to connect")
+                color: Qt.darker(root.foreground, 1.5)
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption
+                elide: Text.ElideRight
+                width: parent.width
+              }
+            }
+          }
+
+          MouseArea {
+            id: rowMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+              if (row.connected) root.disconnect()
+              else root.connectProfile(row.name)
+            }
+          }
+        }
+      }
+
+      PanelSeparator {
+        foreground: root.foreground
+      }
+
+      Row {
+        spacing: Style.space(6)
+
+        Button {
+          iconText: ""
+          text: "Edit connections"
+          foreground: root.foreground
+          fontFamily: root.fontFamily
+          horizontalPadding: 8
+          verticalPadding: 3
+          iconSize: Style.font.bodySmall
+          fontSize: Style.font.bodySmall
+          onClicked: root.openEditor()
+        }
+
+        Button {
+          iconText: ""
+          text: "Refresh"
+          foreground: root.foreground
+          fontFamily: root.fontFamily
+          horizontalPadding: 8
+          verticalPadding: 3
+          iconSize: Style.font.bodySmall
+          fontSize: Style.font.bodySmall
+          onClicked: root.refresh()
+        }
+      }
     }
   }
 }

@@ -1,32 +1,51 @@
 #!/usr/bin/env bash
-# Omarchy bar command widget: VPN status for NetworkManager VPN profiles.
-# Prints Waybar-style JSON: {"text","tooltip","class"}.
+# Omarchy VPN widget: report NetworkManager VPN state as Waybar-style JSON.
+#   {"text": icon, "tooltip": ..., "class": active|busy|inactive|none,
+#    "profiles": [{"name": ..., "state": "activated"|"activating"|""}]}
 set -u
 
 ICON_ON=$'\U000F099D'   # nf-md-shield_lock
 ICON_OFF=$'\U000F099E'  # nf-md-shield_off
 ICON_BUSY=$'\U000F099F' # nf-md-shield_outline
 
-json() { printf '{"text":"%s","tooltip":"%s","class":"%s"}\n' "$1" "$2" "$3"; }
+jstr() { local s=${1//\\/\\\\}; s=${s//\"/\\\"}; s=${s//$'\n'/\\n}; printf '"%s"' "$s"; }
 
-mapfile -t profiles < <(nmcli -g NAME,TYPE connection show 2>/dev/null | awk -F: '$2=="vpn"||$2=="wireguard"{print $1}')
+declare -A state
+while IFS=: read -r name type st; do
+  [ "$type" = vpn ] || [ "$type" = wireguard ] || continue
+  state[$name]=$st
+done < <(nmcli -g NAME,TYPE,STATE connection show --active 2>/dev/null)
+
+profiles=()
+while IFS=: read -r name type; do
+  [ "$type" = vpn ] || [ "$type" = wireguard ] || continue
+  profiles+=("$name")
+done < <(nmcli -g NAME,TYPE connection show 2>/dev/null)
+
+list="["
+sep=""
+for p in "${profiles[@]}"; do
+  list+="$sep{\"name\":$(jstr "$p"),\"state\":$(jstr "${state[$p]:-}")}"
+  sep=","
+done
+list+="]"
+
+emit() { printf '{"text":%s,"tooltip":%s,"class":%s,"profiles":%s}\n' "$(jstr "$1")" "$(jstr "$2")" "$(jstr "$3")" "$list"; }
+
 if [ ${#profiles[@]} -eq 0 ]; then
-  json "$ICON_OFF" "No VPN profiles. Right-click to add one." "none"
+  emit "$ICON_OFF" $'No VPN profiles.\nRight-click to add one.' "none"
   exit 0
 fi
 
-# Active VPN, if any. Field STATE is activating/activated for VPNs.
-active=$(nmcli -g NAME,TYPE,STATE connection show --active 2>/dev/null | awk -F: '($2=="vpn"||$2=="wireguard"){print $1":"$3; exit}')
-if [ -n "$active" ]; then
-  name=${active%%:*}; state=${active##*:}
-  if [ "$state" = "activated" ]; then
-    json "$ICON_ON" "VPN connected: $name\nLeft-click to disconnect" "active"
-  else
-    json "$ICON_BUSY" "VPN $state: $name" "busy"
-  fi
-  exit 0
-fi
+for p in "${profiles[@]}"; do
+  case "${state[$p]:-}" in
+    activated)  emit "$ICON_ON" "VPN connected: $p"$'\nLeft-click to disconnect, right-click to choose' "active"; exit 0 ;;
+    activating) emit "$ICON_BUSY" "VPN connecting: $p" "busy"; exit 0 ;;
+  esac
+done
 
-tip="VPN off. Left-click to connect ${profiles[0]}"
-[ ${#profiles[@]} -gt 1 ] && tip="VPN off. ${#profiles[@]} profiles; left-click connects ${profiles[0]}"
-json "$ICON_OFF" "$tip\nRight-click to edit connections" "inactive"
+if [ ${#profiles[@]} -gt 1 ]; then
+  emit "$ICON_OFF" "VPN off. ${#profiles[@]} profiles"$'\nLeft-click to connect, right-click to choose' "inactive"
+else
+  emit "$ICON_OFF" "VPN off. Left-click to connect ${profiles[0]}"$'\nRight-click for options' "inactive"
+fi
