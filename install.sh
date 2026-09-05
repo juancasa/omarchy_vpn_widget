@@ -6,11 +6,11 @@
 #   ./install.sh --key "SUPER + ALT + V"
 #
 # The plugin itself is installed with `omarchy plugin add`, which clones this
-# repository into ~/.config/omarchy/plugins/juancasa.vpn and enables it.
+# repository into ~/.config/omarchy/plugins/juancasa.omarchy_vpn and enables it.
 set -euo pipefail
 
 repo_url="https://github.com/juancasa/omarchy_vpn_widget.git"
-plugin_id="juancasa.vpn"
+plugin_id="juancasa.omarchy_vpn"
 plugin_dir=~/.config/omarchy/plugins/$plugin_id
 bindings=~/.config/hypr/bindings.lua
 keybinding=1

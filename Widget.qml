@@ -16,7 +16,7 @@ import qs.Ui
 //   call, or a keybinding on scripts/vpn-toggle.
 BarWidget {
   id: root
-  moduleName: "juancasa.vpn"
+  moduleName: "juancasa.omarchy_vpn"
 
   readonly property string pluginDir: Qt.resolvedUrl(".").toString().replace(/^file:\/\//, "").replace(/\/$/, "")
   readonly property string statusScript: pluginDir + "/scripts/vpn-status"
@@ -102,7 +102,7 @@ BarWidget {
   onIntervalChanged: pollTimer.restart()
 
   IpcHandler {
-    target: "juancasa.vpn"
+    target: "juancasa.omarchy_vpn"
 
     function toggle(): void { root.toggle() }
     function refresh(): void { root.broadcast("refresh") }

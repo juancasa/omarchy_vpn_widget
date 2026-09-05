@@ -2,7 +2,7 @@
 # Remove the Omarchy VPN widget plugin and the keybinding install.sh added.
 set -euo pipefail
 
-plugin_id="juancasa.vpn"
+plugin_id="juancasa.omarchy_vpn"
 bindings=~/.config/hypr/bindings.lua
 
 if [ -d ~/.config/omarchy/plugins/$plugin_id ]; then

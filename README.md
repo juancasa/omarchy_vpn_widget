@@ -63,7 +63,7 @@ Omarchy installs shell plugins straight from git:
 omarchy plugin add https://github.com/juancasa/omarchy_vpn_widget.git --enable
 ```
 
-That clones the repo into `~/.config/omarchy/plugins/juancasa.vpn`, validates
+That clones the repo into `~/.config/omarchy/plugins/juancasa.omarchy_vpn`, validates
 the manifest, and places the widget in the right section of the bar. Omarchy
 asks for confirmation first because plugins run unsandboxed inside the shell.
 Add `--yes` to skip the prompts.
@@ -129,28 +129,28 @@ nmcli connection show
   the first VPN profile in `nmcli`'s order. The switch writes the `profile`
   setting (see below), so `omarchy bar set` does the same thing.
 - **Move the widget:** drag it along the bar, or run
-  `omarchy bar move juancasa.vpn --section center`.
+  `omarchy bar move juancasa.omarchy_vpn --section center`.
 - **Scripting:** the widget registers an IPC target, so other tools can drive
   it:
 
   ```bash
-  omarchy-shell juancasa.vpn toggle              # connect or disconnect
-  omarchy-shell juancasa.vpn connect "Work VPN"  # connect a specific profile
-  omarchy-shell juancasa.vpn disconnect
-  omarchy-shell juancasa.vpn menu                # open or close the picker
-  omarchy-shell juancasa.vpn setDefault "Work VPN"  # mark the default profile ("" clears it)
-  omarchy-shell juancasa.vpn refresh             # re-read the status now
-  omarchy-shell juancasa.vpn editor              # open the connection editor
+  omarchy-shell juancasa.omarchy_vpn toggle              # connect or disconnect
+  omarchy-shell juancasa.omarchy_vpn connect "Work VPN"  # connect a specific profile
+  omarchy-shell juancasa.omarchy_vpn disconnect
+  omarchy-shell juancasa.omarchy_vpn menu                # open or close the picker
+  omarchy-shell juancasa.omarchy_vpn setDefault "Work VPN"  # mark the default profile ("" clears it)
+  omarchy-shell juancasa.omarchy_vpn refresh             # re-read the status now
+  omarchy-shell juancasa.omarchy_vpn editor              # open the connection editor
   ```
 
   The toggle script also works on its own, for keybindings or cron:
 
   ```bash
-  ~/.config/omarchy/plugins/juancasa.vpn/scripts/vpn-toggle              # toggle
-  ~/.config/omarchy/plugins/juancasa.vpn/scripts/vpn-toggle "Work VPN"   # toggle, preferring a profile
-  ~/.config/omarchy/plugins/juancasa.vpn/scripts/vpn-toggle --connect "Work VPN"
-  ~/.config/omarchy/plugins/juancasa.vpn/scripts/vpn-toggle --disconnect     # disconnect every active VPN
-  ~/.config/omarchy/plugins/juancasa.vpn/scripts/vpn-toggle --enforce        # keep the newest VPN, drop the rest
+  ~/.config/omarchy/plugins/juancasa.omarchy_vpn/scripts/vpn-toggle              # toggle
+  ~/.config/omarchy/plugins/juancasa.omarchy_vpn/scripts/vpn-toggle "Work VPN"   # toggle, preferring a profile
+  ~/.config/omarchy/plugins/juancasa.omarchy_vpn/scripts/vpn-toggle --connect "Work VPN"
+  ~/.config/omarchy/plugins/juancasa.omarchy_vpn/scripts/vpn-toggle --disconnect     # disconnect every active VPN
+  ~/.config/omarchy/plugins/juancasa.omarchy_vpn/scripts/vpn-toggle --enforce        # keep the newest VPN, drop the rest
   ```
 
 ## Settings
@@ -169,9 +169,9 @@ and can be changed with `omarchy bar set` or from the shell's Setup panel.
 Examples:
 
 ```bash
-omarchy bar set juancasa.vpn profile "Work VPN"
-omarchy bar set juancasa.vpn interval 5
-omarchy bar set juancasa.vpn notify false --json
+omarchy bar set juancasa.omarchy_vpn profile "Work VPN"
+omarchy bar set juancasa.omarchy_vpn interval 5
+omarchy bar set juancasa.omarchy_vpn notify false --json
 ```
 
 Changes apply immediately. The plugin's files hot-reload too, so editing the
@@ -180,13 +180,13 @@ icons at the top of `scripts/vpn-status` takes effect on the next refresh.
 ## Update
 
 ```bash
-omarchy plugin update juancasa.vpn
+omarchy plugin update juancasa.omarchy_vpn
 ```
 
 ## Uninstall
 
 ```bash
-omarchy plugin remove juancasa.vpn
+omarchy plugin remove juancasa.omarchy_vpn
 ```
 
 Or, from a clone, `./uninstall.sh` removes the plugin and the keybinding the
@@ -195,7 +195,7 @@ installer added. NetworkManager VPN profiles are untouched either way.
 ## How it works
 
 ```
-manifest.json        plugin manifest (id juancasa.vpn, kind bar-widget)
+manifest.json        plugin manifest (id juancasa.omarchy_vpn, kind bar-widget)
 Widget.qml           the bar widget: polls the status script, handles clicks, hosts the picker popup
 scripts/vpn-status   prints {"text","tooltip","class","profiles"} from nmcli state
 scripts/vpn-toggle   nmcli connection up / down with notifications
@@ -209,8 +209,8 @@ passing the preferred profile from settings.
 
 - **Icon missing:** check the plugin is enabled with `omarchy plugin list`,
   then run the status script by hand:
-  `~/.config/omarchy/plugins/juancasa.vpn/scripts/vpn-status`. Shell log:
-  `journalctl --user -b | grep juancasa.vpn`.
+  `~/.config/omarchy/plugins/juancasa.omarchy_vpn/scripts/vpn-status`. Shell log:
+  `journalctl --user -b | grep juancasa.omarchy_vpn`.
 - **"No VPN profiles" tooltip:** import a profile (see above). The widget only
   lists connections whose type is `vpn` or `wireguard`.
 - **Connect fails:** run `nmcli connection up "<name>"` in a terminal to see
