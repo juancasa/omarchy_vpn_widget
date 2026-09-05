@@ -11,7 +11,8 @@ managed by NetworkManager.
 
 Left-click opens a picker that lists every VPN profile NetworkManager knows
 about. Click one to connect it (switching from whatever is active), or click
-the connected one to disconnect.
+the connected one to disconnect. The switch on each row marks the default
+profile, the one Super+Shift+V and the IPC toggle connect.
 
 ![Profile picker](docs/picker.png)
 
@@ -123,8 +124,10 @@ nmcli connection show
 
 - **Connect / disconnect:** click the shield and pick a profile, or press
   Super+Shift+V to toggle without opening the picker.
-- **Several profiles:** the keybinding toggle connects the first VPN profile
-  in `nmcli`'s order unless the `profile` setting names another (see below).
+- **Several profiles:** flip the switch next to a profile to make it the
+  default. The keybinding toggle connects that one; with no default it takes
+  the first VPN profile in `nmcli`'s order. The switch writes the `profile`
+  setting (see below), so `omarchy bar set` does the same thing.
 - **Move the widget:** drag it along the bar, or run
   `omarchy bar move juancasa.vpn --section center`.
 - **Scripting:** the widget registers an IPC target, so other tools can drive
@@ -135,6 +138,7 @@ nmcli connection show
   omarchy-shell juancasa.vpn connect "Work VPN"  # connect a specific profile
   omarchy-shell juancasa.vpn disconnect
   omarchy-shell juancasa.vpn menu                # open or close the picker
+  omarchy-shell juancasa.vpn setDefault "Work VPN"  # mark the default profile ("" clears it)
   omarchy-shell juancasa.vpn refresh             # re-read the status now
   omarchy-shell juancasa.vpn editor              # open the connection editor
   ```
