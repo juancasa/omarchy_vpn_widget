@@ -127,7 +127,7 @@ nmcli connection show
   `~/.config/hypr/bindings.lua`:
 
   ```lua
-  o.bind("SUPER SHIFT", "V", "exec", "~/.config/omarchy/bar/scripts/vpn-toggle", "Toggle VPN")
+  o.bind("SUPER + SHIFT + V", "Toggle VPN", "~/.config/omarchy/bar/scripts/vpn-toggle")
   ```
 
 - **Move the widget:** drag it along the bar, or run
