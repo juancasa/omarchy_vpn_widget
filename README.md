@@ -50,10 +50,10 @@ daemons, no tray applet.
 
 - Omarchy 4.x with the Quickshell-based shell. Tested on 4.0.2.
 - NetworkManager with the plugin for your VPN type:
-  - OpenVPN: `sudo pacman -S openvpn networkmanager-openvpn`
+  - OpenVPN: `omarchy pkg add openvpn networkmanager-openvpn`
   - WireGuard: built into NetworkManager, nothing extra to install
 - `nm-connection-editor` for the "Edit connections" button (optional but
-  recommended): `sudo pacman -S nm-connection-editor`
+  recommended): `omarchy pkg add nm-connection-editor`
 
 ## Install
 
