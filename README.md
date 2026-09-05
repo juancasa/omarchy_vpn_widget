@@ -46,7 +46,7 @@ daemons, no tray applet.
 - NetworkManager with the plugin for your VPN type:
   - OpenVPN: `sudo pacman -S openvpn networkmanager-openvpn`
   - WireGuard: built into NetworkManager, nothing extra to install
-- `nm-connection-editor` for the right-click editor (optional but
+- `nm-connection-editor` for the "Edit connections" button (optional but
   recommended): `sudo pacman -S nm-connection-editor`
 
 ## Install
