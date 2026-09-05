@@ -24,7 +24,6 @@ the connected one to disconnect.
 | Action | Result |
 |--------|--------|
 | Left-click | Open the profile picker |
-| Right-click | Connect the VPN, or disconnect if one is already up |
 | Middle-click | Refresh the status immediately |
 | Picker > Edit connections | Open `nm-connection-editor` to import or edit VPN profiles |
 | Hover | Tooltip with the profile name and current state |
@@ -116,10 +115,10 @@ nmcli connection show
 
 ## Use
 
-- **Connect / disconnect:** right-click the shield, or press Super+Shift+V.
-- **Several profiles:** left-click the shield and pick one from the list.
-  The right-click toggle connects the first VPN profile in `nmcli`'s order
-  unless the `profile` setting names another (see below).
+- **Connect / disconnect:** click the shield and pick a profile, or press
+  Super+Shift+V to toggle without opening the picker.
+- **Several profiles:** the keybinding toggle connects the first VPN profile
+  in `nmcli`'s order unless the `profile` setting names another (see below).
 - **Move the widget:** drag it along the bar, or run
   `omarchy bar move juancasa.vpn --section center`.
 - **Scripting:** the widget registers an IPC target, so other tools can drive

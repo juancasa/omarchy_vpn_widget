@@ -39,13 +39,13 @@ fi
 
 for p in "${profiles[@]}"; do
   case "${state[$p]:-}" in
-    activated)  emit "$ICON_ON" "VPN connected: $p"$'\nRight-click to disconnect, left-click to choose' "active"; exit 0 ;;
+    activated)  emit "$ICON_ON" "VPN connected: $p"$'\nClick to choose or disconnect' "active"; exit 0 ;;
     activating) emit "$ICON_BUSY" "VPN connecting: $p" "busy"; exit 0 ;;
   esac
 done
 
 if [ ${#profiles[@]} -gt 1 ]; then
-  emit "$ICON_OFF" "VPN off. ${#profiles[@]} profiles"$'\nRight-click to connect, left-click to choose' "inactive"
+  emit "$ICON_OFF" "VPN off. ${#profiles[@]} profiles"$'\nClick to choose one' "inactive"
 else
-  emit "$ICON_OFF" "VPN off. Right-click to connect ${profiles[0]}"$'\nLeft-click for options' "inactive"
+  emit "$ICON_OFF" "VPN off. Click to connect ${profiles[0]}" "inactive"
 fi

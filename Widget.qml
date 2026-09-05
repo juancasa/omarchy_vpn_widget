@@ -11,8 +11,9 @@ import qs.Ui
 // locked shield in the bar's accent color once connected.
 //
 //   left click    open the profile picker popup
-//   right click   toggle the VPN (scripts/vpn-toggle)
 //   middle click  refresh now
+//   The VPN toggle itself is reachable via the picker, the IPC `toggle`
+//   call, or a keybinding on scripts/vpn-toggle.
 BarWidget {
   id: root
   moduleName: "juancasa.vpn"
@@ -136,9 +137,8 @@ BarWidget {
     tooltipText: root.pickerOpen ? "" : root.tooltip
 
     onPressed: function(b) {
-      if (b === Qt.RightButton) root.toggle()
-      else if (b === Qt.MiddleButton) root.refresh()
-      else root.togglePicker()
+      if (b === Qt.MiddleButton) root.refresh()
+      else if (b === Qt.LeftButton) root.togglePicker()
     }
   }
 
