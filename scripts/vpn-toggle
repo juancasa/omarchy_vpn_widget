@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Toggle the NetworkManager VPN: disconnect the active one, otherwise connect
+# the preferred profile. Set a preferred name in ~/.config/omarchy/bar/vpn-default
+# (one line) when more than one VPN profile exists.
+set -u
+
+notify() { command -v notify-send >/dev/null && notify-send -a "VPN" "$@"; }
+
+active=$(nmcli -g NAME,TYPE connection show --active 2>/dev/null | awk -F: '($2=="vpn"||$2=="wireguard"){print $1; exit}')
+if [ -n "$active" ]; then
+  if nmcli connection down "$active" >/dev/null 2>&1; then
+    notify "VPN disconnected" "$active"
+  else
+    notify -u critical "VPN disconnect failed" "$active"
+  fi
+  exit 0
+fi
+
+mapfile -t profiles < <(nmcli -g NAME,TYPE connection show 2>/dev/null | awk -F: '$2=="vpn"||$2=="wireguard"{print $1}')
+if [ ${#profiles[@]} -eq 0 ]; then
+  notify "No VPN profiles" "Import one with: nmcli connection import type openvpn file <file.ovpn>"
+  exit 1
+fi
+
+target=${profiles[0]}
+default_file=~/.config/omarchy/bar/vpn-default
+if [ -s "$default_file" ]; then
+  want=$(head -n1 "$default_file")
+  for p in "${profiles[@]}"; do [ "$p" = "$want" ] && target=$p; done
+fi
+
+if out=$(nmcli connection up "$target" 2>&1); then
+  notify "VPN connected" "$target"
+else
+  notify -u critical "VPN connect failed" "$target: ${out##*$'\n'}"
+fi

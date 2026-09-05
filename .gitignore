@@ -1,0 +1,6 @@
+# Never commit VPN profiles or keys
+*.ovpn
+*.conf
+*.pem
+*.key
+*.crt
