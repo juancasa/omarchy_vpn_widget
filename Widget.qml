@@ -71,6 +71,18 @@ BarWidget {
     close()
   }
 
+  // Persist the default profile (the one the keybinding / IPC toggle connects)
+  // onto this widget's shell.json entry. Applied locally first so the switch
+  // flips on the click itself; the shell.json write comes back as the same value.
+  function setDefaultProfile(name) {
+    var entry = { id: root.moduleName }
+    for (var key in root.settings) if (key !== "id") entry[key] = root.settings[key]
+    entry.profile = String(name || "")
+    root.settings = entry
+    if (root.bar && root.bar.shell && typeof root.bar.shell.updateEntryInline === "function")
+      root.bar.shell.updateEntryInline(root.moduleName, entry)
+  }
+
   function openEditor() {
     if (root.bar && editor !== "") root.bar.run(editor)
     close()
@@ -98,6 +110,7 @@ BarWidget {
     function connect(name: string): void { root.connectProfile(name) }
     function disconnect(): void { root.disconnect() }
     function menu(): void { root.togglePicker() }
+    function setDefault(name: string): void { root.setDefaultProfile(name) }
     function open(): void { root.open() }
     function close(): void { root.close() }
   }
@@ -167,6 +180,17 @@ BarWidget {
       }
 
       Text {
+        visible: root.profiles.length > 1
+        textFormat: Text.PlainText
+        text: "The switch marks the default profile, used by the toggle shortcut."
+        color: Qt.darker(root.foreground, 1.5)
+        font.family: root.fontFamily
+        font.pixelSize: Style.font.caption
+        wrapMode: Text.WordWrap
+        width: parent.width
+      }
+
+      Text {
         visible: root.profiles.length === 0
         textFormat: Text.PlainText
         text: "No VPN profiles in NetworkManager yet."
@@ -189,6 +213,7 @@ BarWidget {
           readonly property string connState: String(modelData.state || "")
           readonly property bool connected: connState === "activated"
           readonly property bool connecting: connState === "activating"
+          readonly property bool isDefault: root.profile !== "" && name === root.profile
           readonly property bool hovered: rowMouse.containsMouse
 
           width: column.width
@@ -199,13 +224,38 @@ BarWidget {
             : (hovered ? Style.hoverFillFor(root.foreground, Color.accent) : "transparent")
           borderSpec: connected ? Border.controlSpec("normal", root.foreground, Color.accent) : Border.none()
 
+          // Declared before the row content so the switch's own mouse area
+          // stacks above it and keeps its clicks.
+          MouseArea {
+            id: rowMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+              if (row.connected) root.disconnect()
+              else root.connectProfile(row.name)
+            }
+          }
+
+          ToggleSwitch {
+            id: defaultSwitch
+            anchors.right: parent.right
+            anchors.rightMargin: row.borderRight + Style.space(6)
+            anchors.verticalCenter: parent.verticalCenter
+            checked: row.isDefault
+            foreground: root.foreground
+            accent: Color.accent
+            trackHeight: 18
+            onToggled: root.setDefaultProfile(row.isDefault ? "" : row.name)
+          }
+
           Row {
             id: rowInner
             anchors.left: parent.left
-            anchors.right: parent.right
+            anchors.right: defaultSwitch.left
             anchors.verticalCenter: parent.verticalCenter
             anchors.leftMargin: row.borderLeft + Style.space(8)
-            anchors.rightMargin: row.borderRight + Style.space(8)
+            anchors.rightMargin: Style.space(6)
             spacing: Style.space(8)
 
             Text {
@@ -237,25 +287,15 @@ BarWidget {
 
               Text {
                 textFormat: Text.PlainText
-                text: row.connected ? "Connected. Click to disconnect"
-                    : (row.connecting ? "Connecting…" : "Click to connect")
+                text: (row.isDefault ? "Default · " : "")
+                    + (row.connected ? "Connected. Click to disconnect"
+                    : (row.connecting ? "Connecting…" : "Click to connect"))
                 color: Qt.darker(root.foreground, 1.5)
                 font.family: root.fontFamily
                 font.pixelSize: Style.font.caption
                 elide: Text.ElideRight
                 width: parent.width
               }
-            }
-          }
-
-          MouseArea {
-            id: rowMouse
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: {
-              if (row.connected) root.disconnect()
-              else root.connectProfile(row.name)
             }
           }
         }
