@@ -9,7 +9,7 @@ managed by NetworkManager.
 |-----|-----------|
 | ![VPN off](docs/bar-off.png) | ![VPN connected](docs/bar-on.png) |
 
-Right-click opens a picker that lists every VPN profile NetworkManager knows
+Left-click opens a picker that lists every VPN profile NetworkManager knows
 about. Click one to connect it (switching from whatever is active), or click
 the connected one to disconnect.
 
@@ -23,8 +23,8 @@ the connected one to disconnect.
 
 | Action | Result |
 |--------|--------|
-| Left-click | Connect the VPN, or disconnect if one is already up |
-| Right-click | Open the profile picker |
+| Left-click | Open the profile picker |
+| Right-click | Connect the VPN, or disconnect if one is already up |
 | Middle-click | Refresh the status immediately |
 | Picker > Edit connections | Open `nm-connection-editor` to import or edit VPN profiles |
 | Hover | Tooltip with the profile name and current state |
@@ -104,7 +104,7 @@ nmcli connection modify "<connection name>" vpn.user-name "<username>"
 nmcli connection import type wireguard file /path/to/wg0.conf
 ```
 
-**From the GUI:** right-click the widget, choose **Edit connections**, press
+**From the GUI:** click the widget, choose **Edit connections**, press
 **+**, choose **Import a saved VPN configuration…** at the bottom of the list,
 and pick the file.
 
@@ -116,9 +116,9 @@ nmcli connection show
 
 ## Use
 
-- **Connect / disconnect:** left-click the shield, or press Super+Shift+V.
-- **Several profiles:** right-click the shield and pick one from the list.
-  The left-click toggle connects the first VPN profile in `nmcli`'s order
+- **Connect / disconnect:** right-click the shield, or press Super+Shift+V.
+- **Several profiles:** left-click the shield and pick one from the list.
+  The right-click toggle connects the first VPN profile in `nmcli`'s order
   unless the `profile` setting names another (see below).
 - **Move the widget:** drag it along the bar, or run
   `omarchy bar move juancasa.vpn --section center`.

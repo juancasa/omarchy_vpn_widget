@@ -10,8 +10,8 @@ import qs.Ui
 // crossed out while no VPN is up, outlined while one is activating, and a
 // locked shield in the bar's accent color once connected.
 //
-//   left click    toggle the VPN (scripts/vpn-toggle)
-//   right click   open the profile picker popup
+//   left click    open the profile picker popup
+//   right click   toggle the VPN (scripts/vpn-toggle)
 //   middle click  refresh now
 BarWidget {
   id: root
@@ -136,9 +136,9 @@ BarWidget {
     tooltipText: root.pickerOpen ? "" : root.tooltip
 
     onPressed: function(b) {
-      if (b === Qt.RightButton) root.togglePicker()
+      if (b === Qt.RightButton) root.toggle()
       else if (b === Qt.MiddleButton) root.refresh()
-      else root.toggle()
+      else root.togglePicker()
     }
   }
 
