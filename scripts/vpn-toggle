@@ -1,10 +1,18 @@
 #!/usr/bin/env bash
 # Toggle the NetworkManager VPN: disconnect the active one, otherwise connect
-# the preferred profile. Set a preferred name in ~/.config/omarchy/bar/vpn-default
-# (one line) when more than one VPN profile exists.
+# the preferred profile.
+#
+#   vpn-toggle [profile-name]
+#
+# Profile preference, in order: the argument, then one line in
+# ~/.config/omarchy/bar/vpn-default, then the first VPN profile nmcli lists.
+# Set VPN_WIDGET_QUIET=1 to suppress desktop notifications.
 set -u
 
-notify() { command -v notify-send >/dev/null && notify-send -a "VPN" "$@"; }
+notify() {
+  [ "${VPN_WIDGET_QUIET:-0}" = 1 ] && return 0
+  command -v notify-send >/dev/null && notify-send -a "VPN" "$@"
+}
 
 active=$(nmcli -g NAME,TYPE connection show --active 2>/dev/null | awk -F: '($2=="vpn"||$2=="wireguard"){print $1; exit}')
 if [ -n "$active" ]; then
@@ -23,10 +31,13 @@ if [ ${#profiles[@]} -eq 0 ]; then
 fi
 
 target=${profiles[0]}
+want=${1:-}
 default_file=~/.config/omarchy/bar/vpn-default
-if [ -s "$default_file" ]; then
-  want=$(head -n1 "$default_file")
-  for p in "${profiles[@]}"; do [ "$p" = "$want" ] && target=$p; done
+[ -z "$want" ] && [ -s "$default_file" ] && want=$(head -n1 "$default_file")
+if [ -n "$want" ]; then
+  found=0
+  for p in "${profiles[@]}"; do [ "$p" = "$want" ] && { target=$p; found=1; }; done
+  [ $found = 1 ] || notify -u normal "VPN profile '$want' not found" "Connecting $target instead"
 fi
 
 if out=$(nmcli connection up "$target" 2>&1); then

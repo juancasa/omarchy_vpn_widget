@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "juancasa.vpn",
+  "name": "VPN",
+  "version": "1.0.0",
+  "author": "Juan Casanas",
+  "description": "One-click NetworkManager VPN toggle (OpenVPN, WireGuard) for the Omarchy bar",
+  "homepage": "https://github.com/juancasa/omarchy_vpn_widget",
+  "license": "MIT",
+  "kinds": ["bar-widget"],
+  "entryPoints": { "barWidget": "Widget.qml" },
+  "barWidget": {
+    "displayName": "VPN",
+    "description": "Shows NetworkManager VPN state; click to connect or disconnect",
+    "category": "Network",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "interval": 3,
+      "profile": "",
+      "editor": "nm-connection-editor",
+      "notify": true
+    },
+    "schema": [
+      { "key": "interval", "type": "integer", "label": "Refresh interval (seconds)", "min": 1, "max": 60, "step": 1, "defaultValue": 3 },
+      { "key": "profile", "type": "string", "label": "Preferred VPN profile", "defaultValue": "", "description": "NetworkManager connection name to connect when several VPN profiles exist. Empty uses the first one." },
+      { "key": "editor", "type": "string", "label": "Right-click command", "defaultValue": "nm-connection-editor", "description": "Command run on right-click, normally the NetworkManager connection editor." },
+      { "key": "notify", "type": "boolean", "label": "Desktop notifications", "defaultValue": true, "description": "Send a notification after each connect or disconnect." }
+    ]
+  }
+}
