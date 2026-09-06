@@ -39,6 +39,13 @@ widget tears down all but the most recently activated one on its next
 refresh. Turn this off with the `single` setting if you really want stacked
 tunnels.
 
+The VPN stays off until you turn it on. NetworkManager imports profiles with
+autoconnect enabled, which silently re-establishes the tunnel after a resume
+or a Wi-Fi reconnect. The installer turns autoconnect off on every VPN
+profile, and the widget does the same for any profile it connects, so a
+profile only comes up when you ask. To do this by hand for profiles imported
+later: `vpn-toggle --manual`.
+
 ## Why
 
 Omarchy's built-in network panel only handles Wi-Fi, and its bar has no VPN

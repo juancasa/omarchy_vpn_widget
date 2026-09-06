@@ -11,9 +11,13 @@
 #   vpn-toggle --disconnect       disconnect every active VPN
 #   vpn-toggle --enforce          if more than one VPN is up, keep the most
 #                                 recently activated one and disconnect the rest
+#   vpn-toggle --manual           turn autoconnect off on every VPN profile
 #
 # Only one VPN is ever left active: every connect path first brings down any
 # other VPN connection NetworkManager reports as active.
+# The VPN is off unless you turned it on: every profile the widget connects is
+# marked manual (connection.autoconnect no) first, so NetworkManager does not
+# bring it back by itself after a resume or a Wi-Fi reconnect.
 # Set VPN_WIDGET_QUIET=1 to suppress desktop notifications.
 set -u
 
@@ -75,8 +79,16 @@ bring_down() {
   fi
 }
 
+# NetworkManager imports profiles with autoconnect on, which re-establishes the
+# VPN on resume or whenever the uplink comes back. The widget is a manual
+# switch, so make sure the profile only comes up when asked.
+make_manual() {
+  nmcli connection modify "$1" connection.autoconnect no >/dev/null 2>&1
+}
+
 bring_up() {
   local out
+  make_manual "$1"
   if out=$(nmcli connection up "$1" 2>&1); then
     notify "VPN connected" "$1"
   else
@@ -91,9 +103,19 @@ case "${1:-}" in
   --connect) mode=connect; want=${2:-} ;;
   --disconnect) mode=disconnect ;;
   --enforce) mode=enforce ;;
-  -h|--help) sed -n '2,16p' "$0"; exit 0 ;;
+  --manual) mode=manual ;;
+  -h|--help) sed -n '2,17p' "$0"; exit 0 ;;
   *) want=${1:-} ;;
 esac
+
+if [ "$mode" = manual ]; then
+  rc=0
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    make_manual "$name" || { echo "Could not turn autoconnect off: $name" >&2; rc=1; }
+  done < <(vpn_profiles)
+  exit $rc
+fi
 
 mapfile -t actives < <(active_vpns)
 active=${actives[0]:-}

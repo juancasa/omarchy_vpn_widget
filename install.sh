@@ -38,6 +38,11 @@ else
   omarchy plugin add "$repo_url" --enable --yes
 fi
 
+# Stop NetworkManager from bringing VPNs up on its own (resume, Wi-Fi reconnect).
+if "$plugin_dir/scripts/vpn-toggle" --manual; then
+  echo "VPN profiles set to connect only when asked (autoconnect off)"
+fi
+
 if [ "$keybinding" = 1 ]; then
   if [ -f "$bindings" ] && grep -q 'scripts/vpn-toggle' "$bindings"; then
     echo "Keybinding for vpn-toggle already present in $bindings; leaving it unchanged"
